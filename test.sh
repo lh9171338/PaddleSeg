@@ -8,7 +8,7 @@ unset FLAGS_START_PORT
 unset PADDLE_ELASTIC_TIMEOUT
 
 NNODES=1
-NGPUS=8
+NGPUS=1
 
 CONFIG=$1
 OUTOUT=output/${CONFIG}
@@ -21,7 +21,7 @@ logdir=${OUTOUT}/log-test
 
 # kill
 ./kill.sh run.py
-./kill.sh train.py
+./kill.sh test.py
 sleep 5
 
 # test
