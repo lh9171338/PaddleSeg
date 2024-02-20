@@ -1,74 +1,42 @@
 # -*- encoding: utf-8 -*-
 """
-@File    :   segmentor.py
-@Time    :   2023/12/16 23:07:58
+@File    :   yolo_detector.py
+@Time    :   2023/12/16 23:10:44
 @Author  :   lihao57
 @Version :   1.0
 @Contact :   lihao57@baidu.com
 """
 
 
-import paddle
-import paddle.nn as nn
+from ppseg.architectures import BaseModel
+from ppseg.apis import manager
 
 
-class Segmentor(nn.Layer):
+@manager.MODELS.add_component
+class Segmentor(BaseModel):
     """
-    Base Segmentor
+    Segmentor
     """
 
-    def __init__(
-        self,
-        pretrained=None,
-        backbone=None,
-        neck=None,
-        head=None,
-        **kwargs,
-    ):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-        self.backbone = backbone
-        self.neck = neck
-        self.head = head
+    def forward_train(self, image, label, **kwargs) -> dict:
+        """foward function for training"""
+        feats = self.backbone(image)
+        if self.with_neck:
+            feats = self.neck(feats)
+        pred_dict = self.head(feats)
+        loss_dict = self.head.loss(pred_dict, label)
 
-        self.pretrained = pretrained
-        self.load_pretrained_model()
+        return loss_dict
 
-    def load_pretrained_model(self):
-        """load pretrained model"""
-        if self.pretrained is not None:
-            state_dict = paddle.load(self.pretrained)
-            if "model" in state_dict:
-                state_dict = state_dict["model"]
-            self.set_state_dict(state_dict)
+    def forward_test(self, image, **kwargs) -> list:
+        """foward function for testing"""
+        feats = self.backbone(image)
+        if self.with_neck:
+            feats = self.neck(feats)
+        pred_dict = self.head(feats)
+        results = self.head.predict(pred_dict)
 
-    @property
-    def with_backbone(self):
-        """Whether the detector has a backbone"""
-        return hasattr(self, "backbone") and self.backbone is not None
-
-    @property
-    def with_neck(self):
-        """Whether the detector has a neck"""
-        return hasattr(self, "neck") and self.neck is not None
-
-    @property
-    def with_head(self):
-        """Whether the detector has a head"""
-        return hasattr(self, "head") and self.head is not None
-
-    def forward(self, sample: dict) -> dict:
-        if self.training:
-            loss_dict = self.forward_train(**sample)
-            return {"loss": loss_dict}
-        else:
-            pred_dict = self.forward_test(**sample)
-            return {"pred": pred_dict}
-
-    def forward_train(self, **kwargs) -> dict:
-        """froward function for training"""
-        raise NotImplementedError()
-
-    def forward_test(self, **kwargs) -> dict:
-        """froward function for testing"""
-        raise NotImplementedError()
+        return results

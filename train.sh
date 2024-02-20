@@ -8,7 +8,7 @@ unset FLAGS_START_PORT
 unset PADDLE_ELASTIC_TIMEOUT
 
 NNODES=1
-NGPUS=8
+NGPUS=1
 
 CONFIG=$1
 OUTOUT=output/${CONFIG}
@@ -26,6 +26,7 @@ logdir=${OUTOUT}/log
 sleep 5
 
 # train
+CUDA_VISIBLE_DEVICES=0
 python -m paddle.distributed.launch \
     --log_dir ${logdir} \
     --nnodes ${NNODES} \

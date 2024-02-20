@@ -1,5 +1,5 @@
 epochs: 120
-batch_size: 4
+batch_size: 32
 
 # ======================== common config ========================
 define: &num_classes 2
@@ -62,6 +62,7 @@ model:
   backbone:
     type: UNet
     num_classes: *num_classes
+    use_deconv: True
 
   head:
     type: SegHead

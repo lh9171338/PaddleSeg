@@ -57,7 +57,7 @@ define: &weight_decay 1.0e-4
 define: &warmup_steps 10
 
 model:
-  type: UNetSegmentor
+  type: Segmentor
 
   backbone:
     type: UNet
