@@ -5,6 +5,7 @@ This is a image segmentation package based on PaddlePaddle.
 
 # Model
 - [x] UNet
+- [x] DeepLabV3P, DeepLabV3
 
 # Install
 ```shell

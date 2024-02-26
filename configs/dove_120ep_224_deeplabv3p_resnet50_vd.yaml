@@ -1,0 +1,101 @@
+epochs: &epochs 120
+batch_size: 4
+
+# ======================== common config ========================
+define: &num_classes 2
+define: &class_names ['Background', 'Dove']
+
+# ======================== dataset ========================
+define: &dataset_type DoveDataset
+define: &data_root data/dove
+define: &ann_file_train data/dove/train.pkl
+define: &ann_file_val data/dove/val.pkl
+
+# ======================== train dataset ========================
+train_dataset:
+  type: *dataset_type
+  data_root: *data_root
+  ann_file: *ann_file_train
+  mode: train
+  class_names: *class_names
+  pipeline:
+    - type: LoadImageFromFile
+    - type: LoadLabelFromFile
+    - type: ColorJitter
+      brightness: 0.4
+      contrast: 0.4
+      saturation: 0.4
+      hue: 0.4
+    - type: RandomHorizontalFlip
+    - type: RandomVerticalFlip
+    - type: ResizeImage
+      size: [224, 224]
+    - type: NormalizeImage
+      mean: [123.675, 116.28, 103.53]
+      std: [58.395, 57.12, 57.375]
+
+# ======================== val dataset ========================
+val_dataset:
+  type: *dataset_type
+  data_root: *data_root
+  ann_file: *ann_file_val
+  mode: val
+  class_names: *class_names
+  pipeline:
+    - type: LoadImageFromFile
+    - type: LoadLabelFromFile
+    - type: ResizeImage
+      size: [224, 224]
+    - type: NormalizeImage
+      mean: [123.675, 116.28, 103.53]
+      std: [58.395, 57.12, 57.375]
+
+# ======================== model definition ========================
+define: &lr 1.0e-2
+define: &start_lr 1.0e-3
+define: &weight_decay 1.0e-4
+define: &warmup_steps 10
+define: &decay_steps 110
+
+model:
+  type: DeepLabV3P
+  num_classes: *num_classes
+  backbone_indices: [0, 3]
+  aspp_ratios: [1, 6, 12, 18]
+  aspp_out_channels: 256
+  align_corners: False
+  backbone:
+    type: ResNet50_vd
+    output_stride: 8
+    multi_grid: [1, 2, 4]
+    pretrained: https://bj.bcebos.com/paddleseg/dygraph/resnet50_vd_ssld_v2.tar.gz
+  loss:
+    type: CELoss
+    use_softmax: True
+
+optimizer:
+  type: AdamW
+  learning_rate: *lr
+  weight_decay: *weight_decay
+
+scheduler_by_epoch: True
+lr_scheduler:
+  type: LinearWarmup
+  learning_rate:
+    type: PolynomialDecay
+    decay_steps: *decay_steps
+    learning_rate: *lr
+    end_lr: 0
+    power: 0.9
+  warmup_steps: *warmup_steps
+  start_lr: *start_lr
+  end_lr: *lr
+
+visualizer:
+  type: SegVisualizer
+  class_names: *class_names
+  nprocs: 1
+
+metric:
+  type: MIoUMetric
+  class_names: *class_names
