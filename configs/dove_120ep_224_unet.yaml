@@ -1,4 +1,4 @@
-epochs: 120
+epochs: &epochs 120
 batch_size: 4
 
 # ======================== common config ========================
@@ -55,20 +55,14 @@ define: &lr 1.0e-2
 define: &start_lr 1.0e-3
 define: &weight_decay 1.0e-4
 define: &warmup_steps 10
+define: &decay_steps 110
 
 model:
-  type: Segmentor
-
-  backbone:
-    type: UNet
-    num_classes: *num_classes
-
-  head:
-    type: SegHead
-    loss_cls:
-      type: CELoss
-      use_softmax: True
-      weight: [1.0, 1.0]
+  type: UNet
+  num_classes: *num_classes
+  loss:
+    type: CELoss
+    use_softmax: True
 
 optimizer:
   type: AdamW
@@ -79,10 +73,11 @@ scheduler_by_epoch: True
 lr_scheduler:
   type: LinearWarmup
   learning_rate:
-    type: MultiStepDecay
+    type: PolynomialDecay
+    decay_steps: *decay_steps
     learning_rate: *lr
-    milestones: [80, 100]
-    gamma: 0.1
+    end_lr: 0
+    power: 0.9
   warmup_steps: *warmup_steps
   start_lr: *start_lr
   end_lr: *lr

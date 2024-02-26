@@ -4,7 +4,7 @@
 This is a image segmentation package based on PaddlePaddle.
 
 # Model
-- [x] [UNet](https://github.com/lh9171338/PaddleSeg/blob/main/docs/dove.md)
+- [x] UNet
 
 # Install
 ```shell

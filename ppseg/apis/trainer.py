@@ -136,20 +136,6 @@ class Trainer:
                 sum(p.numel().item() for p in model.parameters())
             )
         )
-        if model.with_backbone:
-            logging.info(
-                "Number of parameters of backbone: {}".format(
-                    sum(p.numel().item() for p in model.backbone.parameters())
-                )
-            )
-
-        if model.with_neck:
-            num = sum(p.numel().item() for p in model.neck.parameters())
-            logging.info("Number of parameters of neck: {}".format(num))
-
-        if model.with_head:
-            num = sum(p.numel().item() for p in model.head.parameters())
-            logging.info("Number of parameters of head: {}".format(num))
 
     def format_msg(self, msg_dict):
         """format msg"""
@@ -217,8 +203,13 @@ class Trainer:
             # Train
             self.model.train()
             for sample in self.train_dataloader:
-                outputs = self.model(sample)
-                total_loss, log_loss = self.parse_losses(outputs["loss"])
+                output = self.model(sample["image"])
+                if isinstance(self.model, paddle.DataParallel):
+                    losses = self.model._layers.get_loss(output, **sample)
+                else:
+                    losses = self.model.get_loss(output, **sample)
+
+                total_loss, log_loss = self.parse_losses(losses)
                 self.optimizer.clear_grad()
                 total_loss.backward()
                 self.optimizer.step()
@@ -334,8 +325,11 @@ class Trainer:
             part_results = []
             for sample in tqdm.tqdm(self.val_dataloader, desc="Test"):
                 with paddle.no_grad():
-                    outputs = self.model(sample)
-                results = outputs["pred"]
+                    output = self.model(sample["image"])
+                    if isinstance(self.model, paddle.DataParallel):
+                        results = self.model._layers.predict(output, **sample)
+                    else:
+                        results = self.model.predict(output, **sample)
 
                 # add img_meta
                 img_metas = sample["img_meta"]

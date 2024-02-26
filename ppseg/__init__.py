@@ -7,9 +7,8 @@ from . import (
     layers,
     architectures,
     backbones,
-    necks,
-    heads,
     losses,
     metrics,
     visualizers,
+    utils,
 )

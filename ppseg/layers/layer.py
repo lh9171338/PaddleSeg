@@ -16,6 +16,9 @@ import paddle.nn.functional as F
 __all__ = [
     "BatchChannelNorm",
     "ConvBNLayer",
+    "ConvBN",
+    "ConvBNReLU",
+    "SeparableConvBNReLU",
     "ConvModule",
     "DropBlock",
     "build_conv_layer",
@@ -97,40 +100,19 @@ class ConvBNLayer(nn.Layer):
         padding=0,
         groups=1,
         norm_type="bn",
-        act="leaky",
-        separable=False,
+        act="relu",
     ):
         super().__init__()
 
-        if separable:
-            self.conv = nn.Sequential(
-                nn.Conv2D(
-                    in_channels=ch_in,
-                    out_channels=ch_in,
-                    kernel_size=kernel_size,
-                    stride=stride,
-                    padding=padding,
-                    groups=ch_in,
-                    bias_attr=False,
-                ),
-                nn.Conv2D(
-                    in_channels=ch_in,
-                    out_channels=ch_out,
-                    kernel_size=1,
-                    groups=groups,
-                    bias_attr=False,
-                ),
-            )
-        else:
-            self.conv = nn.Conv2D(
-                in_channels=ch_in,
-                out_channels=ch_out,
-                kernel_size=kernel_size,
-                stride=stride,
-                padding=padding,
-                groups=groups,
-                bias_attr=False,
-            )
+        self.conv = nn.Conv2D(
+            in_channels=ch_in,
+            out_channels=ch_out,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            groups=groups,
+            bias_attr=False,
+        )
         if norm_type == "bcn":
             self.norm = BatchChannelNorm(num_channels=ch_out)
         else:
@@ -160,6 +142,114 @@ class ConvBNLayer(nn.Layer):
             out = getattr(F, self.act)(out)
 
         return out
+
+
+class ConvBN(nn.Layer):
+    """
+    ConvBN conv + bn
+    """
+
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        padding="same",
+        **kwargs,
+    ):
+        super().__init__()
+        self._conv = nn.Conv2D(
+            in_channels, out_channels, kernel_size, padding=padding, **kwargs
+        )
+        if "data_format" in kwargs:
+            data_format = kwargs["data_format"]
+        else:
+            data_format = "NCHW"
+        self._batch_norm = nn.BatchNorm2D(
+            out_channels, data_format=data_format
+        )
+
+    def forward(self, x):
+        x = self._conv(x)
+        x = self._batch_norm(x)
+        return x
+
+
+class ConvBNReLU(nn.Layer):
+    """
+    ConvBNReLU: conv + bn + relu
+    """
+
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        padding="same",
+        **kwargs,
+    ):
+        super().__init__()
+
+        self._conv = nn.Conv2D(
+            in_channels, out_channels, kernel_size, padding=padding, **kwargs
+        )
+
+        if "data_format" in kwargs:
+            data_format = kwargs["data_format"]
+        else:
+            data_format = "NCHW"
+        self._batch_norm = nn.BatchNorm2D(
+            out_channels, data_format=data_format
+        )
+        self._relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self._conv(x)
+        x = self._batch_norm(x)
+        x = self._relu(x)
+        return x
+
+
+class SeparableConvBNReLU(nn.Layer):
+    """
+    SeparableConvBNReLU: separable conv + bn + relu
+    """
+
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        padding="same",
+        pointwise_bias=None,
+        **kwargs,
+    ):
+        super().__init__()
+        self.depthwise_conv = ConvBN(
+            in_channels,
+            out_channels=in_channels,
+            kernel_size=kernel_size,
+            padding=padding,
+            groups=in_channels,
+            **kwargs,
+        )
+        if "data_format" in kwargs:
+            data_format = kwargs["data_format"]
+        else:
+            data_format = "NCHW"
+        self.piontwise_conv = ConvBNReLU(
+            in_channels,
+            out_channels,
+            kernel_size=1,
+            groups=1,
+            data_format=data_format,
+            bias_attr=pointwise_bias,
+        )
+
+    def forward(self, x):
+        x = self.depthwise_conv(x)
+        x = self.piontwise_conv(x)
+        return x
 
 
 def build_conv_layer(cfg, *args, **kwargs):
