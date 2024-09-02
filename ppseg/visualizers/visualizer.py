@@ -13,7 +13,11 @@ import cv2
 import numpy as np
 from ppseg.apis import manager
 import ppseg.apis.utils as api_utils
-from lh_tool.Iterator import SingleProcess, MultiProcess
+
+try:
+    from lh_tool.Iterator import SingleProcess, MultiProcess
+except:
+    from lh_tool.iterator import SingleProcess, MultiProcess
 
 
 __all__ = ["Visualizer", "SegVisualizer"]
