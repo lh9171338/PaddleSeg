@@ -109,6 +109,11 @@ class Config:
         return epochs
 
     @property
+    def ema(self) -> int:
+        ema = self.dic.get("ema", {})
+        return ema
+
+    @property
     def lr_scheduler(self) -> paddle.optimizer.lr.LRScheduler:
         if "lr_scheduler" not in self.dic:
             raise RuntimeError(
@@ -252,6 +257,7 @@ class Config:
         dic = {
             "epochs": self.epochs,
             "batch_size": self.batch_size,
+            "ema": self.ema,
             "optimizer": self.optimizer,
             "lr_scheduler": self.lr_scheduler,
             "scheduler_by_epoch": self.scheduler_by_epoch,
