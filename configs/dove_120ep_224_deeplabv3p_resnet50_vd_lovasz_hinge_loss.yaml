@@ -70,8 +70,12 @@ model:
     multi_grid: [1, 2, 4]
     pretrained: https://bj.bcebos.com/paddleseg/dygraph/resnet50_vd_ssld_v2.tar.gz
   loss:
-    type: CELoss
-    use_softmax: True
+    type: MixedLoss
+    losses:
+      - type: CELoss
+        use_softmax: True
+      - type: LovaszHingeLoss
+    weights: [1.0, 0.02]
 
 optimizer:
   type: AdamW

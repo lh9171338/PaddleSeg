@@ -70,8 +70,10 @@ model:
     multi_grid: [1, 2, 4]
     pretrained: https://bj.bcebos.com/paddleseg/dygraph/resnet50_vd_ssld_v2.tar.gz
   loss:
-    type: CELoss
-    use_softmax: True
+    type: FocalLoss
+    use_sigmoid: True
+    alpha: 0.25
+    gamma: 2.0
 
 optimizer:
   type: AdamW

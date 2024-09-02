@@ -51,27 +51,22 @@ val_dataset:
       std: [58.395, 57.12, 57.375]
 
 # ======================== model definition ========================
-define: &lr 2.0e-3
-define: &start_lr 2.0e-4
+define: &lr 1.0e-2
+define: &start_lr 1.0e-3
 define: &weight_decay 1.0e-4
 define: &warmup_steps 10
 define: &decay_steps 110
 
 model:
-  type: DeepLabV3P
+  type: UNet
   num_classes: *num_classes
-  backbone_indices: [0, 3]
-  aspp_ratios: [1, 6, 12, 18]
-  aspp_out_channels: 256
-  align_corners: False
-  backbone:
-    type: ResNet50_vd
-    output_stride: 8
-    multi_grid: [1, 2, 4]
-    pretrained: https://bj.bcebos.com/paddleseg/dygraph/resnet50_vd_ssld_v2.tar.gz
   loss:
-    type: CELoss
-    use_softmax: True
+    type: MixedLoss
+    losses:
+      - type: CELoss
+        use_softmax: True
+      - type: LovaszSoftmaxLoss
+    weights: [0.8, 0.2]
 
 optimizer:
   type: AdamW
