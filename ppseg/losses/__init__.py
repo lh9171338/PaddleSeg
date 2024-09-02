@@ -1,5 +1,11 @@
 from .loss import (
+    MixedLoss,
     BCELoss,
-    L1Loss,
+    CELoss,
     FocalLoss,
+    DiceLoss,
+)
+from .lovasz_loss import (
+    LovaszSoftmaxLoss,
+    LovaszHingeLoss,
 )

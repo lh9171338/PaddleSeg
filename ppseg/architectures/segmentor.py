@@ -27,6 +27,7 @@ class Segmentor(nn.Layer):
         pretrained=None,
         custom_lr_factor=None,
         loss=None,
+        use_sigmoid=False,
         **kwargs,
     ):
         super().__init__()
@@ -34,6 +35,7 @@ class Segmentor(nn.Layer):
         self.pretrained = pretrained
         self.custom_lr_factor = custom_lr_factor
         self.loss = loss
+        self.use_sigmoid = use_sigmoid
 
     def init_weight(self):
         """initialize weights"""
@@ -101,13 +103,20 @@ class Segmentor(nn.Layer):
         else:
             logit = logits
 
-        pred = F.softmax(logit, axis=1)
-        pred_label = paddle.argmax(pred, axis=1)
-        pred_score = paddle.take_along_axis(
-            pred, pred_label.unsqueeze(axis=1), axis=1
-        ).squeeze(axis=1)
+        if logit.shape[1] == 1:
+            pred_score = logit.sigmoid()
+            pred_label = (pred_score >= 0.5).astype("int64")
+        else:
+            if self.use_sigmoid:
+                pred = logit.sigmoid()
+            else:
+                pred = F.softmax(logit, axis=1)
+            pred_label = paddle.argmax(pred, axis=1)
+            pred_score = paddle.take_along_axis(
+                pred, pred_label.unsqueeze(axis=1), axis=1
+            ).squeeze(axis=1)
 
-        B = pred.shape[0]
+        B = logit.shape[0]
         results = []
         for batch_id in range(B):
             result = dict(
